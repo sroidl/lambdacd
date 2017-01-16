@@ -5,8 +5,29 @@ However, as this is still an experimental library, breaking changes may occur wi
 
 The official release will have a defined and more stable API. If you are already relying on a particular API, please let me know.
 
+## 0.13.0
+* Improvements: 
+  * Added support for build-level metadata (#138). See [Build Metadata](https://github.com/flosell/lambdacd/wiki/Build%20Metadata) for details
+  * UI support for some kinds of metadata: 
+    * `:human-readable-build-label`
+* Bug fixes:
+  * Catch Exception instead of Throwable in build steps to avoid catching Errors which cannot be handled (#148), thanks @hgsy!
+* Deprecated: 
+  * `lambdacd.execution` was deprecated in favor of `lambdacd.execution.core`
+* Breaking Changes: 
+  * Removed `:unify-status-fn` parameter in `execute-steps` (deprecated since 0.9.4). Use `:unify-results-fn` instead. `lambdacd.steps.support/unify-only-status` can help with migrating unify-status-fns. 
+* Changes in internal API: 
+  * `lambdacd.internal.execution` was refactored into several independent namespaces, functions were moved around, replaced or made private. 
+    You shouldn't have dependencies on those unless you are doing something really crazy or advanced. If you did, please consider using functions in public namespaces (i.e. that don't have `internal` in their name).
+    If you have dependencies on functions that have no public equivalent, please open an issue to get this fixed. 
+
+
 ## 0.12.1
 
+New years cleanup and bug fix release.
+
+* Bug fixes: 
+  * **0.12.0 was released without proper CSS, this release is fixing this.** 
 * API Changes:
   * `lambdacd.util` was cleaned up or moved to separate, internal namespaces as most of this functionality was never intended to be part of the public namespace. If you depend on utility functions and feel they should be part of LambdaCDs public API, please open an issue. Specifically, the following functions are now deprecated
     * `lambdacd.util/write-as-json`
@@ -27,10 +48,8 @@ The official release will have a defined and more stable API. If you are already
     * `lambdacd.util/buffered`
     * `lambdacd.util/fill`
     * `lambdacd.util/merge-with-k-v`
-* Changes in internal API (you shouldn't have dependencies on those unless you are doing something really crazy or advanced)
-  * Made the following functions private (as they were never supposed to be publicly available): `lambdacd.internal.execution/{kill-step-handling,report-received-kill,add-kill-switch-reporter,clean-up-kill-handling}` 
 
-## 0.12.0 
+## 0.12.0
 
 * Bug fixes: 
   * Fixed retriggering: Retriggering did not work if the new pipeline state was used as it did not save the pipeline structure for the retriggered build (#146). 

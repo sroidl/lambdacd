@@ -1,9 +1,11 @@
 (ns lambdacd.steps.support
   (:require [clojure.core.async :as async]
-            [lambdacd.internal.execution :as execution]
+            [lambdacd.execution.internal.execute-steps :as execute-steps]
+            [lambdacd.execution.internal.serial-step-result-producer :as serial-step-result-producer]
             [clojure.walk :as walk]
             [lambdacd.step-id :as step-id]
-            [lambdacd.steps.result :as step-results])
+            [lambdacd.steps.result :as step-results]
+            [lambdacd.execution.internal.util :as execution-util])
   (:import (java.io Writer StringWriter)))
 
 (defn- merge-step-results-with-joined-output [a b]
@@ -30,7 +32,7 @@
       (step-results/merge-step-results merge-step-results-with-joined-output)))
 
 (defn- do-chain-steps-with-execute-steps [args ctx steps step-result-producer]
-  (let [execute-step-result (execution/execute-steps steps args ctx
+  (let [execute-step-result (execute-steps/execute-steps steps args ctx
                                                      :step-result-producer step-result-producer
                                                      :unify-results-fn unify-results)
         sorted-step-results (step-results-sorted-by-id (:outputs execute-step-result))
@@ -41,13 +43,13 @@
   ([args ctx & steps]
    (do-chain-steps-with-execute-steps args ctx
                                       (map wrap-step-to-allow-nil-values steps)
-                                      (execution/serial-step-result-producer))))
+                                      (serial-step-result-producer/serial-step-result-producer))))
 
 (defn always-chain-steps
   ([args ctx & steps]
    (do-chain-steps-with-execute-steps args ctx
                                       (map wrap-step-to-allow-nil-values steps)
-                                      (execution/serial-step-result-producer :stop-predicate (constantly false)))))
+                                      (serial-step-result-producer/serial-step-result-producer :stop-predicate (constantly false)))))
 
 (defn to-fn [form]
   (let [f# (first form)
@@ -132,10 +134,10 @@
      ~@body))
 
 (defn merge-globals [step-results]
-  (or (:global (reduce execution/keep-globals {} step-results)) {}))
+  (or (:global (reduce execution-util/keep-globals {} step-results)) {}))
 
 (defn merge-step-results [step-results]
-  (reduce execution/merge-two-step-results {} step-results))
+  (reduce execution-util/merge-two-step-results {} step-results))
 
 ; not part of the public interface, just public for the macro
 (defn writer-to-ctx [ctx]
@@ -160,3 +162,12 @@
                         (do ~@body))]
      (if (associative? body-result#)
        (update body-result# :out #(if (nil? %) (str buffer#) (str buffer# "\n" % ))))))
+
+(defn unify-only-status
+  "Converts a function that can unify statuses into a unify-results-fn suitable for execute-steps"
+  [unify-status-fn]
+  (execute-steps/unify-only-status unify-status-fn))
+
+
+(defn assoc-metadata! [ctx & kvs]
+  (swap! (:build-metadata-atom ctx) #(apply assoc % kvs)))

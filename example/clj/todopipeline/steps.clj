@@ -6,11 +6,21 @@
   (:require [lambdacd.steps.shell :as shell]
             [lambdacd.steps.git :as git]
             [lambdacd.steps.manualtrigger :as manualtrigger]
-            [lambdacd.steps.support :as support]))
+            [lambdacd.steps.support :as support]
+            [clj-time.format :as time-format]
+            [clj-time.core :as time]))
 
-;; Let's define some constants
+;; Let's define some constants and utility-functions
 (def backend-repo "git@github.com:flosell/todo-backend-compojure.git")
 (def frontend-repo "git@github.com:flosell/todo-backend-client.git")
+
+(defn build-label [ctx]
+  (str (time-format/unparse (time-format/formatters :date) (time/now)) "." (:build-number ctx)))
+
+; Let's try out some custom metadata:
+(defn set-build-name [args ctx]
+  (support/assoc-metadata! ctx :human-readable-build-label (build-label ctx))
+  {:status :success})
 
 ;; This step does nothing more than to delegate to a library-function.
 ;; It's a function that just waits until something changes in the repo.
